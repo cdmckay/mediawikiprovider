@@ -13,7 +13,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  ******************************************************************************/
-package org.cdmckay.android.provider;
+package org.cdmckay.android.provider.demo;
+
+import org.cdmckay.android.provider.R;
+import org.cdmckay.android.provider.R.id;
+import org.cdmckay.android.provider.R.layout;
 
 import android.app.Activity;
 import android.os.Bundle;

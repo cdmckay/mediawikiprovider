@@ -36,7 +36,13 @@ public class MediaWikiProvider extends ContentProvider {
 		return matcher;
 	}	
 	
-	private static final Module sModule = new WikipediaModule();
+	private static Module sModule = new GenericMediaWikiModule();	
+	public static Module getModule() {
+		return sModule;
+	}	
+	public static void setModule(Module module) {
+		sModule = module;
+	}
 	
 	@Override
 	public String getType(Uri uri) {

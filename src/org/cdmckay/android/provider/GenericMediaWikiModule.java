@@ -33,9 +33,9 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.util.Xml;
 
-public class WikipediaModule implements Module {
+public class GenericMediaWikiModule implements Module {
 
-	private static final String API_URI = "http://en.wikipedia.org/w/api.php";
+	private static final String WIKIPEDIA_API_URI = "http://en.wikipedia.org/w/api.php";
 
 	private static final String SEARCH_FORMAT_URI = "%s?action=opensearch&search=%s&format=xml";
 	private static final String GET_PAGE_BY_TITLE_FORMAT_URI = "%s?action=query&prop=revisions&titles=%s&rvprop=content&format=xml";
@@ -48,14 +48,31 @@ public class WikipediaModule implements Module {
 	private static final String[] SEARCH_COLUMN_NAMES = new String[] {
 			MediaWikiMetaData.Search.TITLE, MediaWikiMetaData.Search.DESCRIPTION,
 			MediaWikiMetaData.Search.URL };
+	
+	// The page column names.
+	private static final String[] PAGE_COLUMN_NAMES = new String[] {
+			MediaWikiMetaData.Page.PAGE_ID,
+			MediaWikiMetaData.Page.NAMESPACE,
+			MediaWikiMetaData.Page.TITLE,
+			MediaWikiMetaData.Page.CONTENT
+	};
 
 	// A temporary buffer used to hold the response of an HTTP GET request.
 	private static byte[] sContentBuffer = new byte[512];
+	
+	// The location of the MediaWiki API.
+	private final String mApiUri;
 
-	public Cursor search(String query) {
-		// Format must be XML in order to get description text.
-		// Using JSON just gives you a list of strings.
-		final String url = String.format(SEARCH_FORMAT_URI, API_URI, URLEncoder.encode(query));
+	public GenericMediaWikiModule(String apiUri) {
+		mApiUri = apiUri;
+	}
+	
+	public GenericMediaWikiModule() {
+		this(WIKIPEDIA_API_URI);
+	}
+	
+	public Cursor search(String query) {		
+		final String url = String.format(SEARCH_FORMAT_URI, WIKIPEDIA_API_URI, URLEncoder.encode(query));
 		final String response = getResponse(url);
 		final OpenSearchHandler handler = new OpenSearchHandler();
 
@@ -75,13 +92,33 @@ public class WikipediaModule implements Module {
 	}
 
 	public Cursor getPageByTitle(String title) {
-		final String url = String.format(GET_PAGE_BY_TITLE_FORMAT_URI, API_URI, URLEncoder.encode(title));
-		final String response = getResponse(url);
-		return null;
+		final String url = String.format(GET_PAGE_BY_TITLE_FORMAT_URI, mApiUri, URLEncoder.encode(title));
+		final String response = getResponse(url);				
+		return parsePage(response);
 	}
 
 	public Cursor getPageById(long id) {
-		return null;
+		final String url = String.format(GET_PAGE_BY_ID_FORMAT_URI, mApiUri, id + "");
+		final String response = getResponse(url);				
+		return parsePage(response);
+	}
+	
+	private Cursor parsePage(String page) {
+		final PageHandler handler = new PageHandler();
+		
+		try {
+			Xml.parse(page, handler);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+
+		final List<PageHandler.Result> results = handler.getResults();
+		final MatrixCursor cursor = new MatrixCursor(PAGE_COLUMN_NAMES);
+		for (PageHandler.Result result : results) {
+			cursor.addRow(new Object[] { result.pageId, result.namespace, result.title, result.content });
+		}
+		
+		return cursor;
 	}
 
 	private synchronized String getResponse(String url) {
