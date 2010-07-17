@@ -1,0 +1,84 @@
+package org.cdmckay.android.provider;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
+
+public class OpenSearchHandler extends DefaultHandler {
+
+	private boolean inItem = false;
+	private boolean inTitle = false;
+	private boolean inDescription = false;
+	private boolean inUrl = false;
+	
+	private static final String EMPTY_STRING = "";
+	
+	private String title = EMPTY_STRING;
+	private String description = EMPTY_STRING;
+	private String url = EMPTY_STRING;
+	
+	public static class Result {
+		public final String title;
+		public final String description;
+		public final String url;
+		
+		public Result(String title, String description, String url) {
+			this.title = title;
+			this.description = description;
+			this.url = url;
+		}
+	}
+	
+	private List<Result> results = new ArrayList<Result>();
+	
+	public List<Result> getResults() {		
+		return results;
+	}
+	
+	@Override
+	public void startElement(String uri, String localName, String qName, Attributes attributes)
+			throws SAXException {	
+		final String name = localName.trim().toLowerCase();
+		if (name.equals("item")) {
+			inItem = true;
+		} else if (name.equals("text")) {
+			inTitle = true;
+		} else if (name.equals("description")) {
+			inDescription = true;
+		} else if (name.equals("url")) {
+			inUrl = true;
+		}
+	}
+	
+	@Override
+	public void endElement(String uri, String localName, String qName) throws SAXException {
+		final String name = localName.trim().toLowerCase();
+		if (name.equals("item")) {
+			results.add(new Result(title, description, url));
+			title = EMPTY_STRING;
+			description = EMPTY_STRING;
+			url = EMPTY_STRING;
+			inItem = false;
+		} else if (name.equals("text")) {
+			inTitle = false;
+		} else if (name.equals("description")) {
+			inDescription = false;
+		} else if (name.equals("url")) {
+			inUrl = false;
+		}
+	}
+	
+	@Override
+	public void characters(char[] ch, int start, int length) throws SAXException {
+		final String str = new String(ch).substring(start, start + length);
+		if (inItem) {
+			if (inTitle) title = str;
+			else if (inDescription) description = str;
+			else if (inUrl) url = str;			
+		}
+	}
+	
+}

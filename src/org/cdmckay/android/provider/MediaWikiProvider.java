@@ -17,9 +17,11 @@ public class MediaWikiProvider extends ContentProvider {
 		UriMatcher matcher = new UriMatcher(UriMatcher.NO_MATCH);
 		matcher.addURI(MediaWikiMetaData.AUTHORITY, "search/*", SEARCH);
 		matcher.addURI(MediaWikiMetaData.AUTHORITY, "page/title/*", PAGE_BY_TITLE);
-		matcher.addURI(MediaWikiMetaData.AUTHORITY, "page/id/*", PAGE_BY_ID);
+		matcher.addURI(MediaWikiMetaData.AUTHORITY, "page/id/#", PAGE_BY_ID);
 		return matcher;
-	}
+	}	
+	
+	private static final Module sModule = new WikipediaModule();
 	
 	@Override
 	public String getType(Uri uri) {
@@ -42,10 +44,18 @@ public class MediaWikiProvider extends ContentProvider {
 	@Override
 	public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
 			String sortOrder) {
-		// TODO Auto-generated method stub
-		return null;
+		switch (sUriMatcher.match(uri)) {
+			case SEARCH:				
+				return sModule.search(uri.getLastPathSegment());
+			case PAGE_BY_TITLE:
+				return sModule.getPageByTitle(uri.getLastPathSegment());
+			case PAGE_BY_ID:
+				return sModule.getPageById(Long.valueOf(uri.getLastPathSegment()));
+			default:
+				throw new IllegalArgumentException("Unknown URI: " + uri);
+		}
 	}
-	
+		
 	@Override
 	public int delete(Uri arg0, String arg1, String[] arg2) {
 		throw new UnsupportedOperationException();
