@@ -36,45 +36,47 @@ import android.util.Xml;
 public class WikipediaModule implements Module {
 
 	private static final String API_URI = "http://en.wikipedia.org/w/api.php";
+
+	private static final String SEARCH_FORMAT_URI = "%s?action=opensearch&search=%s&format=xml";
+	private static final String GET_PAGE_BY_TITLE_FORMAT_URI = "%s?action=query&prop=revisions&titles=%s&rvprop=content&format=xml";
+	private static final String GET_PAGE_BY_ID_FORMAT_URI = "%s?action=query&prop=revisions&pageids=%s&rvprop=content&format=xml";
+
 	private static final String USER_AGENT = MediaWikiProvider.class.getSimpleName() + "/"
 			+ MediaWikiMetaData.VERSION;
-	
+
 	// The search column names.
 	private static final String[] SEARCH_COLUMN_NAMES = new String[] {
-		MediaWikiMetaData.Search.TITLE,
-		MediaWikiMetaData.Search.DESCRIPTION,
-		MediaWikiMetaData.Search.URL
-	};
-	
+			MediaWikiMetaData.Search.TITLE, MediaWikiMetaData.Search.DESCRIPTION,
+			MediaWikiMetaData.Search.URL };
+
 	// A temporary buffer used to hold the response of an HTTP GET request.
 	private static byte[] sContentBuffer = new byte[512];
-	
-	
 
 	public Cursor search(String query) {
 		// Format must be XML in order to get description text.
 		// Using JSON just gives you a list of strings.
-		final String url = String.format("%s?action=opensearch&search=%s&format=xml", API_URI,
-				URLEncoder.encode(query));
+		final String url = String.format(SEARCH_FORMAT_URI, API_URI, URLEncoder.encode(query));
 		final String response = getResponse(url);
 		final OpenSearchHandler handler = new OpenSearchHandler();
-		
-		try {			
-			Xml.parse(response, handler);
-        } catch (Exception e) {
-            throw new RuntimeException(e);
-        }
 
-        final List<OpenSearchHandler.Result> results = handler.getResults();
-        final MatrixCursor cursor = new MatrixCursor(SEARCH_COLUMN_NAMES);
-        for (OpenSearchHandler.Result result: results) {
-        	cursor.addRow(new Object[] { result.title, result.description, result.url });
-        }
+		try {
+			Xml.parse(response, handler);
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}
+
+		final List<OpenSearchHandler.Result> results = handler.getResults();
+		final MatrixCursor cursor = new MatrixCursor(SEARCH_COLUMN_NAMES);
+		for (OpenSearchHandler.Result result : results) {
+			cursor.addRow(new Object[] { result.title, result.description, result.url });
+		}
 
 		return cursor;
 	}
 
 	public Cursor getPageByTitle(String title) {
+		final String url = String.format(GET_PAGE_BY_TITLE_FORMAT_URI, API_URI, URLEncoder.encode(title));
+		final String response = getResponse(url);
 		return null;
 	}
 

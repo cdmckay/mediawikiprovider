@@ -24,12 +24,12 @@ import org.xml.sax.helpers.DefaultHandler;
 
 public class OpenSearchHandler extends DefaultHandler {
 
+	private static final String EMPTY_STRING = "";
+	
 	private boolean inItem = false;
 	private boolean inTitle = false;
 	private boolean inDescription = false;
-	private boolean inUrl = false;
-	
-	private static final String EMPTY_STRING = "";
+	private boolean inUrl = false;		
 	
 	private String title = EMPTY_STRING;
 	private String description = EMPTY_STRING;
