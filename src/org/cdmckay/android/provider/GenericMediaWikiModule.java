@@ -62,14 +62,22 @@ public class GenericMediaWikiModule implements Module {
 	
 	// The location of the MediaWiki API.
 	private final String mApiUri;
-
-	public GenericMediaWikiModule(String apiUri) {
+	
+	// The HTTP client.
+	private final HttpClient mHttpClient;
+	
+	public GenericMediaWikiModule(String apiUri, HttpClient httpClient) {
 		mApiUri = apiUri;
+		mHttpClient = httpClient;
+	}
+	
+	public GenericMediaWikiModule(String apiUri) {
+		this(apiUri, new DefaultHttpClient());
 	}
 	
 	public GenericMediaWikiModule() {
 		this(WIKIPEDIA_API_URI);
-	}
+	}		
 	
 	public Cursor search(String query) {		
 		final String url = String.format(SEARCH_FORMAT_URI, WIKIPEDIA_API_URI, URLEncoder.encode(query));
@@ -121,13 +129,12 @@ public class GenericMediaWikiModule implements Module {
 		return cursor;
 	}
 
-	private synchronized String getResponse(String url) {
-		HttpClient client = new DefaultHttpClient();
+	private synchronized String getResponse(String url) {		
 		HttpGet request = new HttpGet(url);
 		request.setHeader("User-Agent", USER_AGENT);
 
 		try {
-			HttpResponse response = client.execute(request);
+			HttpResponse response = mHttpClient.execute(request);
 
 			// Check if server response is valid.
 			StatusLine status = response.getStatusLine();
