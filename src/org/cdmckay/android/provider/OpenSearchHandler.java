@@ -31,16 +31,19 @@ public class OpenSearchHandler extends DefaultHandler {
 	private boolean inDescription = false;
 	private boolean inUrl = false;		
 	
+	private String id = EMPTY_STRING;
 	private String title = EMPTY_STRING;
 	private String description = EMPTY_STRING;
 	private String url = EMPTY_STRING;
 	
 	public static class Result {
+		public final String id;
 		public final String title;
 		public final String description;
 		public final String url;
 		
-		public Result(String title, String description, String url) {
+		public Result(String id, String title, String description, String url) {
+			this.id = id;
 			this.title = title;
 			this.description = description;
 			this.url = url;
@@ -72,7 +75,8 @@ public class OpenSearchHandler extends DefaultHandler {
 	public void endElement(String uri, String localName, String qName) throws SAXException {
 		final String name = localName.trim().toLowerCase();
 		if (name.equals("item")) {
-			results.add(new Result(title, description, url));
+			results.add(new Result(id, title, description, url));
+			id = EMPTY_STRING;
 			title = EMPTY_STRING;
 			description = EMPTY_STRING;
 			url = EMPTY_STRING;
@@ -91,8 +95,14 @@ public class OpenSearchHandler extends DefaultHandler {
 		final String str = new String(ch).substring(start, start + length);
 		if (inItem) {
 			if (inTitle) title = str;
-			else if (inDescription) description = str;
-			else if (inUrl) url = str;			
+			else if (inDescription) {
+				// Remove all unsightly double-brackets that occur.
+				description = str.replaceAll(" \\(\\)", "");
+			} else if (inUrl) {
+				url = str;
+				// TODO Add more checking code
+				id = url.substring(url.lastIndexOf("/") + 1);							
+			}
 		}
 	}
 	

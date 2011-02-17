@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="hello">Hello World, MediaWikiProvider!</string>
     <string name="app_name">MediaWiki Provider Demo</string>
+    <string name="search_hint">Search Wikipedia</string>
+    <string name="introduction">Welcome to the MediaWiki Provider Demo.  This demo will search Wikipedia using its OpenSearch XML interface and return the results here.</string>
+    <string name="results">Results</string>
 </resources>

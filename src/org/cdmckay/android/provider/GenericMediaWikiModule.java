@@ -31,6 +31,7 @@ import org.apache.http.impl.client.DefaultHttpClient;
 
 import android.database.Cursor;
 import android.database.MatrixCursor;
+import android.provider.BaseColumns;
 import android.util.Xml;
 
 public class GenericMediaWikiModule implements Module {
@@ -46,11 +47,14 @@ public class GenericMediaWikiModule implements Module {
 
 	// The search column names.
 	private static final String[] SEARCH_COLUMN_NAMES = new String[] {
-			MediaWikiMetaData.Search.TITLE, MediaWikiMetaData.Search.DESCRIPTION,
+			BaseColumns._ID,
+			MediaWikiMetaData.Search.TITLE, 
+			MediaWikiMetaData.Search.DESCRIPTION,
 			MediaWikiMetaData.Search.URL };
 	
 	// The page column names.
 	private static final String[] PAGE_COLUMN_NAMES = new String[] {
+			//BaseColumns._ID,
 			MediaWikiMetaData.Page.PAGE_ID,
 			MediaWikiMetaData.Page.NAMESPACE,
 			MediaWikiMetaData.Page.TITLE,
@@ -92,8 +96,8 @@ public class GenericMediaWikiModule implements Module {
 
 		final List<OpenSearchHandler.Result> results = handler.getResults();
 		final MatrixCursor cursor = new MatrixCursor(SEARCH_COLUMN_NAMES);
-		for (OpenSearchHandler.Result result : results) {
-			cursor.addRow(new Object[] { result.title, result.description, result.url });
+		for (OpenSearchHandler.Result result : results) {			
+			cursor.addRow(new Object[] { result.id, result.title, result.description, result.url });
 		}
 
 		return cursor;
