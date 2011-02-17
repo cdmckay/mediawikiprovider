@@ -12,7 +12,6 @@ import android.net.Uri;
 import android.os.Bundle;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
-import android.widget.TextView;
 
 public class Search extends Activity {
 
@@ -23,11 +22,7 @@ public class Search extends Activity {
 		super.onCreate(savedInstanceState);            
         setContentView(R.layout.search);
                 
-        mListView = (ListView) findViewById(R.id.list);
-        
-//        final TextView headerView = new TextView(this);
-//        headerView.setText(R.string.results);        
-//        mListView.addHeaderView(headerView);
+        mListView = (ListView) findViewById(R.id.list);       
         
         final Intent intent = getIntent();
         if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
