@@ -37,7 +37,7 @@ public class Search extends Activity {
     				MediaWikiMetaData.Search.DESCRIPTION 
     				};
     		
-    		final int[] to = new int[] { android.R.id.text1, android.R.id.text2 };
+    		final int[] to = new int[] { R.id.text1, R.id.text2 };
     		
     		mListView.setAdapter(new SimpleCursorAdapter(this, 
     				R.layout.list_item, cursor, columns, to));

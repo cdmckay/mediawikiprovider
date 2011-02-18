@@ -11,7 +11,7 @@
                 <category android:name="android.intent.category.LAUNCHER" />                
             </intent-filter>            
         </activity>
-        <provider android:authorities="org.cdmckay.android.provider.MediaWikiProvider" android:name="MediaWikiProvider"></provider>
+        <provider android:authorities="org.cdmckay.android.provider.mediawikiprovider" android:name="MediaWikiProvider"></provider>
         <activity android:name=".demo.Search">
             <intent-filter>
                 <action android:name="android.intent.action.SEARCH"></action>
