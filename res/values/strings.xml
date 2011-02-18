@@ -2,6 +2,10 @@
 <resources>
     <string name="app_name">MediaWiki Provider Demo</string>
     <string name="search_hint">Search Wikipedia</string>
-    <string name="introduction">Welcome to the MediaWiki Provider Demo.  This demo will search Wikipedia using its OpenSearch XML interface and return the results here.</string>
+    <string name="introduction">Welcome to the MediaWiki Provider Demo.  This demo will search Wikipedia or Memory Alpha using their OpenSearch XML interface and return the results here.</string>
     <string name="results">Results</string>
+    <string name="search_option">Search</string>
+    <string name="wiki_wikipedia">Wikipedia</string>
+    <string name="wiki_memory_alpha">Memory Alpha</string>
+    <string name="preferences">preferences</string>
 </resources>

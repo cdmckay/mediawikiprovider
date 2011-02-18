@@ -4,4 +4,19 @@
     android:layout_width="fill_parent"
     android:layout_height="fill_parent">
     <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/introduction" android:id="@+id/introduction"></TextView>
+    <RadioGroup android:layout_height="wrap_content" android:layout_width="match_parent" android:id="@+id/provider_choice">
+        <RadioButton android:layout_width="wrap_content" 
+                     android:layout_height="wrap_content"
+                     android:paddingLeft="44dip"
+                     android:checked="true" 
+                     android:id="@+id/provider_wikipedia" 
+                     android:text="@string/wiki_wikipedia">
+        </RadioButton>
+        <RadioButton android:layout_width="wrap_content" 
+                     android:layout_height="wrap_content" 
+                     android:paddingLeft="44dip"                     
+                     android:id="@+id/provider_memory_alpha" 
+                     android:text="@string/wiki_memory_alpha">
+        </RadioButton>
+    </RadioGroup>
 </LinearLayout>

@@ -2,11 +2,14 @@ package org.cdmckay.android.provider.demo;
 
 import org.cdmckay.android.provider.MediaWikiMetaData;
 import org.cdmckay.android.provider.R;
+import org.cdmckay.android.provider.memoryalpha.MemoryAlphaProvider;
+import org.cdmckay.android.provider.wikipedia.WikipediaProvider;
 
 import android.app.Activity;
 import android.app.SearchManager;
 import android.content.ContentResolver;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
@@ -29,8 +32,20 @@ public class Search extends Activity {
         	final String query = intent.getStringExtra(SearchManager.QUERY);
         	
         	final ContentResolver resolver = getContentResolver();
-    		final Uri uri = Uri.withAppendedPath(MediaWikiMetaData.Search.CONTENT_URI, query);	
-    		final Cursor cursor = resolver.query(uri, null, null, null, null);    	
+        	
+        	final SharedPreferences settings = getSharedPreferences(Main.SETTINGS, MODE_PRIVATE);        	
+        	final Uri providerUri;
+        	switch (settings.getInt("provider", R.id.provider_wikipedia)) {        		
+        		case R.id.provider_memory_alpha:
+        			providerUri = MemoryAlphaProvider.Search.CONTENT_URI;
+        			break;
+        		case R.id.provider_wikipedia:
+        		default:
+        			providerUri = WikipediaProvider.Search.CONTENT_URI;        			
+        	}
+        	
+    		final Uri uri = Uri.withAppendedPath(providerUri, query);	
+    		final Cursor cursor = resolver.query(uri, null, null, null, null);    		    		
     		
     		final String[] columns = new String[] { 
     				MediaWikiMetaData.Search.TITLE, 

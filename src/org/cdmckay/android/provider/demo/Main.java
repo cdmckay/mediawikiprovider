@@ -16,8 +16,15 @@
 package org.cdmckay.android.provider.demo;
 
 import org.cdmckay.android.provider.R;
+import org.cdmckay.android.provider.wikipedia.WikipediaProvider;
+
 import android.app.Activity;
+import android.content.SharedPreferences;
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
+import android.widget.RadioGroup;
 
 /**
  * An Android activity that can be used to demonstrate and test the capabilities of the
@@ -26,12 +33,52 @@ import android.os.Bundle;
  * @author cdmckay
  *
  */
-public class Main extends Activity {
+public class Main extends Activity {	
+	
+	public static final String SETTINGS = "preferences";
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {		
 		super.onCreate(savedInstanceState);		
-		setContentView(R.layout.main);		
+		setContentView(R.layout.main);
+				
+		final RadioGroup providerModule = (RadioGroup) findViewById(R.id.provider_choice);
+		providerModule.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {			
+			@Override
+			public void onCheckedChanged(RadioGroup group, int checkedId) {
+				final SharedPreferences settings = getSharedPreferences(SETTINGS, MODE_PRIVATE);
+				SharedPreferences.Editor editor = settings.edit();
+				
+				switch (checkedId) {
+					case R.id.provider_memory_alpha:
+						editor.putInt("provider", R.id.provider_memory_alpha);
+						break;
+					case R.id.provider_wikipedia:						
+					    editor.putInt("provider", R.id.provider_wikipedia);											
+						break;    			
+				}
+				
+				editor.commit();
+			}
+		});			
 	}
+
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		MenuInflater inflater = getMenuInflater();
+	    inflater.inflate(R.menu.options, menu);
+	    return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		switch (item.getItemId()) {
+		    case R.id.search:
+		    	onSearchRequested();
+		        return true;
+		    default:
+		        return super.onOptionsItemSelected(item);
+		}
+	}	
 
 }
