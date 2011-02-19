@@ -88,21 +88,13 @@ public abstract class AbstractMediaWikiProvider extends ContentProvider {
 	}
 	
 	private static final class Response {
-		private final String contentType;
-		private final String content;
+		public final String contentType;
+		public final String content;
 		
 		public Response(String contentType, String content) {
 			this.contentType = contentType;			
 			this.content = content;
 		}
-
-		public String getContentType() {
-			return contentType;
-		}
-
-		public String getContent() {
-			return content;
-		}				
 	}
 
 	// A temporary buffer used to hold the response of an HTTP GET request.
@@ -183,10 +175,10 @@ public abstract class AbstractMediaWikiProvider extends ContentProvider {
 		final Response response = getResponse(url);
 		
 		final Cursor cursor;		
-		if (response.getContentType().startsWith(ContentType.XML)) {
-			cursor = parseXmlSearch(response.getContent());
-		} else if (response.getContentType().startsWith(ContentType.JSON)) {
-			cursor = parseJsonSearch(response.getContent());
+		if (response.contentType.startsWith(ContentType.XML)) {
+			cursor = parseXmlSearch(response.content);
+		} else if (response.contentType.startsWith(ContentType.JSON)) {
+			cursor = parseJsonSearch(response.content);
 		} else {
 			throw new RuntimeException("Unrecognized content type");
 		}
@@ -233,13 +225,13 @@ public abstract class AbstractMediaWikiProvider extends ContentProvider {
 	protected Cursor getPageByTitle(String title) {
 		final String url = String.format(GET_PAGE_BY_TITLE_FORMAT_URI, getApiUri(), URLEncoder.encode(title));
 		final Response response = getResponse(url);				
-		return parseXmlPage(response.getContent());
+		return parseXmlPage(response.content);
 	}
 
 	protected Cursor getPageById(long id) {
 		final String url = String.format(GET_PAGE_BY_ID_FORMAT_URI, getApiUri(), id + "");
 		final Response response = getResponse(url);				
-		return parseXmlPage(response.getContent());
+		return parseXmlPage(response.content);
 	}
 	
 	private Cursor parseXmlPage(String page) {
@@ -258,6 +250,10 @@ public abstract class AbstractMediaWikiProvider extends ContentProvider {
 		}
 		
 		return cursor;
+	}
+	
+	private Cursor parseJsonPage(String page) {
+		return null;
 	}
 
 	protected synchronized Response getResponse(String url) {		

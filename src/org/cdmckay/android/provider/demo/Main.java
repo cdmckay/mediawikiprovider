@@ -42,12 +42,13 @@ public class Main extends Activity {
 		super.onCreate(savedInstanceState);		
 		setContentView(R.layout.main);
 				
+		final SharedPreferences settings = getSharedPreferences(SETTINGS, MODE_PRIVATE);
+		
 		final RadioGroup providerModule = (RadioGroup) findViewById(R.id.provider_choice);
 		providerModule.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {			
 			@Override
-			public void onCheckedChanged(RadioGroup group, int checkedId) {
-				final SharedPreferences settings = getSharedPreferences(SETTINGS, MODE_PRIVATE);
-				SharedPreferences.Editor editor = settings.edit();
+			public void onCheckedChanged(RadioGroup group, int checkedId) {				
+				final SharedPreferences.Editor editor = settings.edit();
 				
 				switch (checkedId) {
 					case R.id.provider_memory_alpha:
@@ -60,7 +61,8 @@ public class Main extends Activity {
 				
 				editor.commit();
 			}
-		});			
+		});
+		providerModule.check(settings.getInt("provider", R.id.provider_wikipedia));		
 	}
 
 	@Override
