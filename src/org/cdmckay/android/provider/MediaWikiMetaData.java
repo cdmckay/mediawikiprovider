@@ -17,7 +17,7 @@ package org.cdmckay.android.provider;
 
 public class MediaWikiMetaData {
 
-	public static class Search {
+	public static final class Search {
 		private Search() {}
 		
 		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.cdmckay.mediawiki.search";		
@@ -30,7 +30,7 @@ public class MediaWikiMetaData {
 		public static final String URL = "url"; 
 	}
 	
-	public static class Page {
+	public static final class Page {
 		private Page() {}
 					
 		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.cdmckay.mediawiki.page";		

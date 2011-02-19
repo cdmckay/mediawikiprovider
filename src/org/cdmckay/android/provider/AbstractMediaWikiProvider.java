@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.net.URLEncoder;
 import java.util.List;
 
+import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
@@ -28,6 +29,8 @@ import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
+import org.json.JSONArray;
+import org.json.JSONException;
 
 import android.content.ContentProvider;
 import android.content.ContentValues;
@@ -36,12 +39,14 @@ import android.database.Cursor;
 import android.database.MatrixCursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
+import android.util.Log;
 import android.util.Xml;
 
-public abstract class MediaWikiProvider extends ContentProvider {   	
+public abstract class AbstractMediaWikiProvider extends ContentProvider {   
+	private static final String TAG = "AbstractMediaWikiProvider";
 		
-	protected static String VERSION = "1";
-	protected static String BASE_AUTHORITY = "org.cdmckay.android.provider";
+	protected static final String BASE_VERSION = "1";
+	protected static final String BASE_AUTHORITY = "org.cdmckay.android.provider";
 	
 	private static final int SEARCH = 1;
 	private static final int PAGE_BY_TITLE = 2;
@@ -56,8 +61,8 @@ public abstract class MediaWikiProvider extends ContentProvider {
 	private static final String GET_PAGE_BY_ID_FORMAT_URI = 
 		"%s?action=query&prop=revisions&pageids=%s&rvprop=content&format=xml";
 
-	private static final String USER_AGENT = MediaWikiProvider.class.getSimpleName() + "/"
-			+ VERSION;
+	private static final String USER_AGENT = AbstractMediaWikiProvider.class.getSimpleName() + "/"
+			+ BASE_VERSION;
 
 	// The search column names.
 	private static final String[] SEARCH_COLUMN_NAMES = new String[] {
@@ -74,12 +79,39 @@ public abstract class MediaWikiProvider extends ContentProvider {
 			MediaWikiMetaData.Page.TITLE,
 			MediaWikiMetaData.Page.CONTENT
 	};
+	
+	private static final class ContentType {
+		private ContentType() {}
+		
+		public static final String XML = "text/xml";
+		public static final String JSON = "application/json";
+	}
+	
+	private static final class Response {
+		private final String contentType;
+		private final String content;
+		
+		public Response(String contentType, String content) {
+			this.contentType = contentType;			
+			this.content = content;
+		}
+
+		public String getContentType() {
+			return contentType;
+		}
+
+		public String getContent() {
+			return content;
+		}				
+	}
 
 	// A temporary buffer used to hold the response of an HTTP GET request.
 	private static byte[] sContentBuffer = new byte[512];	
 	
 	// The HTTP client.
 	private final HttpClient mHttpClient = new DefaultHttpClient();
+	
+	// URI Matcher
 	
 	private final UriMatcher mUriMatcher = buildUriMatcher();
 	private UriMatcher buildUriMatcher() {
@@ -103,12 +135,12 @@ public abstract class MediaWikiProvider extends ContentProvider {
 		}
 	}	
 
+	// ContentProvider
+	
 	@Override
 	public boolean onCreate() {
 		return true;
 	}
-
-	// ContentProvider
 	
 	@Override
 	public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
@@ -148,37 +180,69 @@ public abstract class MediaWikiProvider extends ContentProvider {
 	
 	protected Cursor search(String query) {		
 		final String url = String.format(SEARCH_FORMAT_URI, getApiUri(), URLEncoder.encode(query));
-		final String response = getResponse(url);
-		final OpenSearchHandler handler = new OpenSearchHandler();
+		final Response response = getResponse(url);
+		
+		final Cursor cursor;		
+		if (response.getContentType().startsWith(ContentType.XML)) {
+			cursor = parseXmlSearch(response.getContent());
+		} else if (response.getContentType().startsWith(ContentType.JSON)) {
+			cursor = parseJsonSearch(response.getContent());
+		} else {
+			throw new RuntimeException("Unrecognized content type");
+		}
+		
+		return cursor;
+	}
+	
+	private Cursor parseXmlSearch(String search) {
+		final MatrixCursor cursor = new MatrixCursor(SEARCH_COLUMN_NAMES);		
 
 		try {
-			Xml.parse(response, handler);
+			final OpenSearchHandler handler = new OpenSearchHandler();
+			Xml.parse(search, handler);
+			
+			final List<OpenSearchHandler.Result> results = handler.getResults();			
+			for (OpenSearchHandler.Result result : results) {			
+				cursor.addRow(new Object[] { result.id, result.title, result.description, result.url });
+			}
 		} catch (Exception e) {
+			Log.e(TAG, e.toString());
+			throw new RuntimeException(e);
+		}		
+
+		return cursor;
+	}
+	
+	private Cursor parseJsonSearch(String search) {
+		final MatrixCursor cursor = new MatrixCursor(SEARCH_COLUMN_NAMES);
+		
+		try {
+			final JSONArray titles = new JSONArray(search).getJSONArray(1);
+			for (int i = 0; i < titles.length(); i++) {
+				final String title = titles.getString(i);
+				cursor.addRow(new Object[] { i, title, "", getApiUri() + "/" + title });
+			}			
+		} catch (JSONException e) {
+			Log.e(TAG, e.toString());
 			throw new RuntimeException(e);
 		}
-
-		final List<OpenSearchHandler.Result> results = handler.getResults();
-		final MatrixCursor cursor = new MatrixCursor(SEARCH_COLUMN_NAMES);
-		for (OpenSearchHandler.Result result : results) {			
-			cursor.addRow(new Object[] { result.id, result.title, result.description, result.url });
-		}
-
+		
 		return cursor;
 	}
 
 	protected Cursor getPageByTitle(String title) {
 		final String url = String.format(GET_PAGE_BY_TITLE_FORMAT_URI, getApiUri(), URLEncoder.encode(title));
-		final String response = getResponse(url);				
-		return parsePage(response);
+		final Response response = getResponse(url);				
+		return parseXmlPage(response.getContent());
 	}
 
 	protected Cursor getPageById(long id) {
 		final String url = String.format(GET_PAGE_BY_ID_FORMAT_URI, getApiUri(), id + "");
-		final String response = getResponse(url);				
-		return parsePage(response);
+		final Response response = getResponse(url);				
+		return parseXmlPage(response.getContent());
 	}
 	
-	protected Cursor parsePage(String page) {
+	private Cursor parseXmlPage(String page) {
 		final PageHandler handler = new PageHandler();
 		
 		try {
@@ -196,33 +260,37 @@ public abstract class MediaWikiProvider extends ContentProvider {
 		return cursor;
 	}
 
-	protected synchronized String getResponse(String url) {		
-		HttpGet request = new HttpGet(url);
+	protected synchronized Response getResponse(String url) {		
+		final HttpGet request = new HttpGet(url);
 		request.setHeader("User-Agent", USER_AGENT);
 
 		try {
-			HttpResponse response = mHttpClient.execute(request);
+			final HttpResponse response = mHttpClient.execute(request);
 
 			// Check if server response is valid.
-			StatusLine status = response.getStatusLine();
+			final StatusLine status = response.getStatusLine();
 			if (status.getStatusCode() != HttpStatus.SC_OK) {
 				throw new RuntimeException("Invalid response from server: " + status.toString());
 			}
-
+			
 			// Pull content stream from response.
-			HttpEntity entity = response.getEntity();
-			InputStream inputStream = entity.getContent();
-
-			ByteArrayOutputStream content = new ByteArrayOutputStream();
-
+			final HttpEntity entity = response.getEntity();
+			
+			// Grab the content type.
+			final Header contentType = entity.getContentType();
+						
+			// Grab the content.
+			final InputStream inputStream = entity.getContent();			
+			final ByteArrayOutputStream content = new ByteArrayOutputStream();
+			
 			// Read response into a buffered stream.
 			int readBytes = 0;
 			while ((readBytes = inputStream.read(sContentBuffer)) != -1) {
 				content.write(sContentBuffer, 0, readBytes);
 			}
-
+						
 			// Return result from buffered stream.
-			return new String(content.toByteArray());
+			return new Response(contentType.getValue(), new String(content.toByteArray()));
 		} catch (IOException e) {
 			throw new RuntimeException("Problem communicating with API", e);
 		}

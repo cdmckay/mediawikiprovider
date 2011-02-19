@@ -1,10 +1,10 @@
 package org.cdmckay.android.provider.memoryalpha;
 
-import org.cdmckay.android.provider.MediaWikiProvider;
+import org.cdmckay.android.provider.AbstractMediaWikiProvider;
 
 import android.net.Uri;
 
-public class MemoryAlphaProvider extends MediaWikiProvider {
+public class MemoryAlphaProvider extends AbstractMediaWikiProvider {
 
 	public static final String VERSION = "1";
 	public static final String AUTHORITY = BASE_AUTHORITY + ".memoryalphaprovider";
@@ -21,6 +21,11 @@ public class MemoryAlphaProvider extends MediaWikiProvider {
 	}
 	
 	@Override
+	protected String getVersion() {
+		return VERSION;
+	}
+	
+	@Override
 	protected String getAuthority() {
 		return AUTHORITY;
 	}
@@ -28,11 +33,6 @@ public class MemoryAlphaProvider extends MediaWikiProvider {
 	@Override
 	protected String getApiUri() {		
 		return API_URI;
-	}	
-	
-	@Override
-	protected String getVersion() {
-		return VERSION;
-	}
+	}		
 
 }
