@@ -16,7 +16,6 @@
 package org.cdmckay.android.provider.demo;
 
 import org.cdmckay.android.provider.R;
-import org.cdmckay.android.provider.wikipedia.WikipediaProvider;
 
 import android.app.Activity;
 import android.content.SharedPreferences;
@@ -44,8 +43,8 @@ public class Main extends Activity {
 				
 		final SharedPreferences settings = getSharedPreferences(SETTINGS, MODE_PRIVATE);
 		
-		final RadioGroup providerModule = (RadioGroup) findViewById(R.id.provider_choice);
-		providerModule.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {			
+		final RadioGroup providerChoice = (RadioGroup) findViewById(R.id.provider_choice);
+		providerChoice.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {			
 			@Override
 			public void onCheckedChanged(RadioGroup group, int checkedId) {				
 				final SharedPreferences.Editor editor = settings.edit();
@@ -62,7 +61,7 @@ public class Main extends Activity {
 				editor.commit();
 			}
 		});
-		providerModule.check(settings.getInt("provider", R.id.provider_wikipedia));		
+		providerChoice.check(settings.getInt("provider", R.id.provider_wikipedia));		
 	}
 
 	@Override

@@ -1,3 +1,18 @@
+/*******************************************************************************
+ * Copyright 2011 Cameron McKay
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ ******************************************************************************/
 package org.cdmckay.android.provider.demo;
 
 import org.cdmckay.android.provider.MediaWikiMetaData;
@@ -13,6 +28,10 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.AdapterView.OnItemClickListener;
+import android.widget.AdapterView.OnItemSelectedListener;
 import android.widget.ListView;
 import android.widget.SimpleCursorAdapter;
 
@@ -45,7 +64,8 @@ public class Search extends Activity {
         	}
         	
     		final Uri uri = Uri.withAppendedPath(providerUri, query);	
-    		final Cursor cursor = resolver.query(uri, null, null, null, null);    		    		
+    		final Cursor cursor = resolver.query(uri, null, null, null, null);    		
+    		startManagingCursor(cursor);
     		
     		final String[] columns = new String[] { 
     				MediaWikiMetaData.Search.TITLE, 
@@ -56,6 +76,20 @@ public class Search extends Activity {
     		
     		mListView.setAdapter(new SimpleCursorAdapter(this, 
     				R.layout.list_item, cursor, columns, to));
+    		
+    		mListView.setOnItemClickListener(new OnItemClickListener() {
+
+				@Override
+				public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+					if (cursor.moveToPosition(position)) {
+						final Intent articleIntent = new Intent(Search.this, Article.class);			
+						final int titleColumn = cursor.getColumnIndex(MediaWikiMetaData.Search.TITLE);
+						articleIntent.putExtra("title", cursor.getString(titleColumn));
+						startActivity(articleIntent);
+					}														
+				}				
+    			
+    		});
         }        
 	}
 	

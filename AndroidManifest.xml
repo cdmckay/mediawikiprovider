@@ -23,8 +23,9 @@
             </intent-filter>
             <meta-data android:name="android.app.searchable" android:resource="@xml/searchable"/>
         </activity>
+        <activity android:name=".demo.Article"></activity>
         <meta-data android:name="android.app.default_searchable"
-                   android:value=".demo.Search" />
+                   android:value=".demo.Search" />        
     </application>
     <uses-sdk android:minSdkVersion="8" />
 
