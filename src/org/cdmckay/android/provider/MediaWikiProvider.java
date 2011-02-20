@@ -32,6 +32,9 @@ import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import org.cdmckay.android.provider.xml.OpenSearchHandler;
+import org.cdmckay.android.provider.xml.PageHandler;
+
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.content.UriMatcher;
