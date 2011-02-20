@@ -19,6 +19,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URLEncoder;
+import java.util.Iterator;
 import java.util.List;
 
 import org.apache.http.Header;
@@ -31,6 +32,7 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.json.JSONArray;
 import org.json.JSONException;
+import org.json.JSONObject;
 
 import org.cdmckay.android.provider.xml.OpenSearchHandler;
 import org.cdmckay.android.provider.xml.PageHandler;
@@ -58,10 +60,10 @@ public class MediaWikiProvider extends ContentProvider {
 		"%s?action=opensearch&search=%s&format=xml";
 	
 	private static final String GET_PAGE_BY_TITLE_FORMAT_URI = 
-		"%s?action=query&prop=revisions&titles=%s&rvprop=content&format=xml";
+		"%s?action=query&prop=revisions&titles=%s&rvprop=content&format=json";
 	
 	private static final String GET_PAGE_BY_ID_FORMAT_URI = 
-		"%s?action=query&prop=revisions&pageids=%s&rvprop=content&format=xml";
+		"%s?action=query&prop=revisions&pageids=%s&rvprop=content&format=json";
 
 	private static final String USER_AGENT = TAG + "/" + MediaWikiMetaData.VERSION;
 
@@ -234,35 +236,83 @@ public class MediaWikiProvider extends ContentProvider {
 	protected Cursor getPageByTitle(String apiUrl, String title) {
 		final String url = String.format(GET_PAGE_BY_TITLE_FORMAT_URI, apiUrl, URLEncoder.encode(title));
 		final Response response = getResponse(url);				
-		return parseXmlPage(apiUrl, response.content);
+
+		final Cursor cursor;		
+		if (response.contentType.startsWith(ContentType.XML)) {
+			cursor = parseXmlPage(apiUrl, response.content);
+		} else if (response.contentType.startsWith(ContentType.JSON)) {
+			cursor = parseJsonPage(apiUrl, response.content);
+		} else {
+			throw new RuntimeException("Unrecognized content type");
+		}
+		
+		return cursor;
 	}
 
 	protected Cursor getPageById(String apiUrl, long id) {
 		final String url = String.format(GET_PAGE_BY_ID_FORMAT_URI, apiUrl, id + "");
-		final Response response = getResponse(url);				
-		return parseXmlPage(apiUrl, response.content);
-	}
-	
-	private Cursor parseXmlPage(String apiUrl, String page) {
-		final PageHandler handler = new PageHandler();
+		final Response response = getResponse(url);			
 		
-		try {
-			Xml.parse(page, handler);
-		} catch (Exception e) {
-			throw new RuntimeException(e);
-		}
-
-		final List<PageHandler.Result> results = handler.getResults();
-		final MatrixCursor cursor = new MatrixCursor(PAGE_COLUMN_NAMES);
-		for (PageHandler.Result result : results) {
-			cursor.addRow(new Object[] { result.pageId, result.namespace, result.title, result.content });
+		final Cursor cursor;		
+		if (response.contentType.startsWith(ContentType.XML)) {
+			cursor = parseXmlPage(apiUrl, response.content);
+		} else if (response.contentType.startsWith(ContentType.JSON)) {
+			cursor = parseJsonPage(apiUrl, response.content);
+		} else {
+			throw new RuntimeException("Unrecognized content type");
 		}
 		
 		return cursor;
 	}
 	
-	private Cursor parseJsonPage(String apiUrl, String page) {
-		return null;
+	private Cursor parseXmlPage(String apiUrl, String pageString) {
+		final MatrixCursor cursor = new MatrixCursor(PAGE_COLUMN_NAMES);		
+		
+		try {
+			final PageHandler handler = new PageHandler();
+			Xml.parse(pageString, handler);
+			
+			final List<PageHandler.Result> results = handler.getResults();		
+			for (PageHandler.Result result : results) {
+				cursor.addRow(new Object[] { result.pageId, result.namespace, result.title, result.content });
+			}
+		} catch (Exception e) {
+			throw new RuntimeException(e);
+		}		
+		
+		return cursor;
+	}
+	
+	private Cursor parseJsonPage(String apiUrl, String pageString) {
+		final MatrixCursor cursor = new MatrixCursor(PAGE_COLUMN_NAMES);
+		
+		try {
+			final JSONObject query = new JSONObject(pageString).getJSONObject("query");
+			final JSONObject pages = query.getJSONObject("pages");
+			
+			@SuppressWarnings("unchecked")
+			final Iterator<String> keys = (Iterator<String>) pages.keys();
+			while (keys.hasNext()) {
+				final String key = (String) keys.next();
+				final JSONObject page = pages.getJSONObject(key);
+				final String content = page
+						.getJSONArray("revisions")
+						.getJSONObject(0)
+						.getString("*");
+				
+				cursor.addRow(new Object[] { 
+						page.getLong("pageid"), 
+						page.getLong("ns"),
+						page.getString("title"),
+						content
+						});
+			}	
+		} catch (JSONException e) {
+			Log.e(TAG, e.toString());
+			throw new RuntimeException(e);
+		}
+		
+		return cursor;
 	}
 
 	protected synchronized Response getResponse(String url) {		
