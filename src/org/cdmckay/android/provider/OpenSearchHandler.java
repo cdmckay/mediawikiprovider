@@ -33,7 +33,7 @@ public class OpenSearchHandler extends DefaultHandler {
 	
 	private int id = 1;
 	private String title = EMPTY_STRING;
-	private String description = EMPTY_STRING;
+	private StringBuilder description = new StringBuilder();
 	private String url = EMPTY_STRING;
 	
 	public static class Result {
@@ -75,10 +75,10 @@ public class OpenSearchHandler extends DefaultHandler {
 	public void endElement(String uri, String localName, String qName) throws SAXException {
 		final String name = localName.trim().toLowerCase();
 		if (name.equals("item")) {
-			results.add(new Result(id, title, description, url));
+			results.add(new Result(id, title, description.toString(), url));
 			id++;
 			title = EMPTY_STRING;
-			description = EMPTY_STRING;
+			description.delete(0, description.length());
 			url = EMPTY_STRING;
 			inItem = false;
 		} else if (name.equals("text")) {
@@ -97,7 +97,7 @@ public class OpenSearchHandler extends DefaultHandler {
 			if (inTitle) {
 				title = str;
 			} else if (inDescription) {				
-				description = str.replaceAll(" \\(\\)", "");
+				description.append(str);
 			} else if (inUrl) {
 				url = str;							
 			}
