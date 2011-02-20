@@ -36,6 +36,9 @@ public class Main extends Activity {
 	
 	public static final String SETTINGS = "preferences";
 	
+	public static final String WIKIPEDIA_API = "en.wikipedia.org+w";
+	public static final String MEMORY_ALPHA_API = "memory-alpha.org";
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {		
 		super.onCreate(savedInstanceState);		

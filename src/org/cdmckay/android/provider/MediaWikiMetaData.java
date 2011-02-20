@@ -15,8 +15,14 @@
  ******************************************************************************/
 package org.cdmckay.android.provider;
 
+import android.net.Uri;
+
 public class MediaWikiMetaData {
 
+	protected static final String VERSION = "1";
+	protected static final String AUTHORITY = "org.cdmckay.android.provider.mediawikiprovider";
+	public static final Uri CONTENT_URI = Uri.parse("content://" + AUTHORITY);
+	
 	public static final class Search {
 		private Search() {}
 		
@@ -32,7 +38,7 @@ public class MediaWikiMetaData {
 	
 	public static final class Page {
 		private Page() {}
-					
+						
 		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.cdmckay.mediawiki.page";		
 		
 		// long

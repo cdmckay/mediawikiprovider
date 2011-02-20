@@ -42,15 +42,14 @@ import android.provider.BaseColumns;
 import android.util.Log;
 import android.util.Xml;
 
-public abstract class AbstractMediaWikiProvider extends ContentProvider {   
-	private static final String TAG = "AbstractMediaWikiProvider";
-		
-	protected static final String BASE_VERSION = "1";
-	protected static final String BASE_AUTHORITY = "org.cdmckay.android.provider";
+public class MediaWikiProvider extends ContentProvider {   
+	private static final String TAG = "MediaWikiProvider";	
 	
 	private static final int SEARCH = 1;
 	private static final int PAGE_BY_TITLE = 2;
 	private static final int PAGE_BY_ID = 3;
+	
+	private static final String API_FORMAT_URL = "http://%s/api.php";
 	
 	private static final String SEARCH_FORMAT_URI = 
 		"%s?action=opensearch&search=%s&format=xml";
@@ -61,8 +60,7 @@ public abstract class AbstractMediaWikiProvider extends ContentProvider {
 	private static final String GET_PAGE_BY_ID_FORMAT_URI = 
 		"%s?action=query&prop=revisions&pageids=%s&rvprop=content&format=xml";
 
-	private static final String USER_AGENT = AbstractMediaWikiProvider.class.getSimpleName() + "/"
-			+ BASE_VERSION;
+	private static final String USER_AGENT = TAG + "/" + MediaWikiMetaData.VERSION;
 
 	// The search column names.
 	private static final String[] SEARCH_COLUMN_NAMES = new String[] {
@@ -105,12 +103,16 @@ public abstract class AbstractMediaWikiProvider extends ContentProvider {
 	
 	// URI Matcher
 	
+	// Examples:
+	// content://org.cdmckay.android.provider.mediawikiprovider/en.wikipedia.org+w/search/Tex
+	// content://org.cdmckay.android.provider.mediawikiprovider/en.wikipedia.org+w/page/title/Texas
+	// content://org.cdmckay.android.provider.mediawikiprovider/en.wikipedia.org+w/page/id/432
 	private final UriMatcher mUriMatcher = buildUriMatcher();
 	private UriMatcher buildUriMatcher() {
 		UriMatcher matcher = new UriMatcher(UriMatcher.NO_MATCH);
-		matcher.addURI(getAuthority(), "search/*", SEARCH);
-		matcher.addURI(getAuthority(), "page/title/*", PAGE_BY_TITLE);
-		matcher.addURI(getAuthority(), "page/id/#", PAGE_BY_ID);
+		matcher.addURI(MediaWikiMetaData.AUTHORITY, "*/search/*", SEARCH);
+		matcher.addURI(MediaWikiMetaData.AUTHORITY, "*/page/title/*", PAGE_BY_TITLE);
+		matcher.addURI(MediaWikiMetaData.AUTHORITY, "*/page/id/#", PAGE_BY_ID);
 		return matcher;
 	}	
 	
@@ -137,16 +139,24 @@ public abstract class AbstractMediaWikiProvider extends ContentProvider {
 	@Override
 	public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs,
 			String sortOrder) {
+		final List<String> segments = uri.getPathSegments();
 		switch (mUriMatcher.match(uri)) {
 			case SEARCH:				
-				return search(uri.getLastPathSegment());
+				return search(convertPathSegmentToApiUrl(segments.get(0)), 
+						uri.getLastPathSegment());
 			case PAGE_BY_TITLE:
-				return getPageByTitle(uri.getLastPathSegment());
+				return getPageByTitle(convertPathSegmentToApiUrl(segments.get(0)), 
+						uri.getLastPathSegment());
 			case PAGE_BY_ID:
-				return getPageById(Long.valueOf(uri.getLastPathSegment()));
+				return getPageById(convertPathSegmentToApiUrl(segments.get(0)), 
+						Long.valueOf(uri.getLastPathSegment()));
 			default:
 				throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
+	}
+	
+	private static final String convertPathSegmentToApiUrl(String segment) {
+		return String.format(API_FORMAT_URL, segment.replaceAll("\\+", "/"));
 	}
 		
 	@Override
@@ -166,19 +176,15 @@ public abstract class AbstractMediaWikiProvider extends ContentProvider {
 	
 	// Methods
 	
-	protected abstract String getVersion();
-	protected abstract String getAuthority();
-	protected abstract String getApiUri();
-	
-	protected Cursor search(String query) {		
-		final String url = String.format(SEARCH_FORMAT_URI, getApiUri(), URLEncoder.encode(query));
+	protected Cursor search(String apiUrl, String query) {		
+		final String url = String.format(SEARCH_FORMAT_URI, apiUrl, URLEncoder.encode(query));
 		final Response response = getResponse(url);
 		
 		final Cursor cursor;		
 		if (response.contentType.startsWith(ContentType.XML)) {
-			cursor = parseXmlSearch(response.content);
+			cursor = parseXmlSearch(apiUrl, response.content);
 		} else if (response.contentType.startsWith(ContentType.JSON)) {
-			cursor = parseJsonSearch(response.content);
+			cursor = parseJsonSearch(apiUrl, response.content);
 		} else {
 			throw new RuntimeException("Unrecognized content type");
 		}
@@ -186,7 +192,7 @@ public abstract class AbstractMediaWikiProvider extends ContentProvider {
 		return cursor;
 	}
 	
-	private Cursor parseXmlSearch(String search) {
+	private Cursor parseXmlSearch(String apiUrl, String search) {
 		final MatrixCursor cursor = new MatrixCursor(SEARCH_COLUMN_NAMES);		
 
 		try {
@@ -205,14 +211,14 @@ public abstract class AbstractMediaWikiProvider extends ContentProvider {
 		return cursor;
 	}
 	
-	private Cursor parseJsonSearch(String search) {
+	private Cursor parseJsonSearch(String apiUrl, String search) {
 		final MatrixCursor cursor = new MatrixCursor(SEARCH_COLUMN_NAMES);
 		
 		try {
 			final JSONArray titles = new JSONArray(search).getJSONArray(1);
 			for (int i = 0; i < titles.length(); i++) {
 				final String title = titles.getString(i);
-				cursor.addRow(new Object[] { i, title, "", getApiUri() + "/" + title });
+				cursor.addRow(new Object[] { i, title, "", apiUrl + "/" + title });
 			}			
 		} catch (JSONException e) {
 			Log.e(TAG, e.toString());
@@ -222,19 +228,19 @@ public abstract class AbstractMediaWikiProvider extends ContentProvider {
 		return cursor;
 	}
 
-	protected Cursor getPageByTitle(String title) {
-		final String url = String.format(GET_PAGE_BY_TITLE_FORMAT_URI, getApiUri(), URLEncoder.encode(title));
+	protected Cursor getPageByTitle(String apiUrl, String title) {
+		final String url = String.format(GET_PAGE_BY_TITLE_FORMAT_URI, apiUrl, URLEncoder.encode(title));
 		final Response response = getResponse(url);				
-		return parseXmlPage(response.content);
+		return parseXmlPage(apiUrl, response.content);
 	}
 
-	protected Cursor getPageById(long id) {
-		final String url = String.format(GET_PAGE_BY_ID_FORMAT_URI, getApiUri(), id + "");
+	protected Cursor getPageById(String apiUrl, long id) {
+		final String url = String.format(GET_PAGE_BY_ID_FORMAT_URI, apiUrl, id + "");
 		final Response response = getResponse(url);				
-		return parseXmlPage(response.content);
+		return parseXmlPage(apiUrl, response.content);
 	}
 	
-	private Cursor parseXmlPage(String page) {
+	private Cursor parseXmlPage(String apiUrl, String page) {
 		final PageHandler handler = new PageHandler();
 		
 		try {
@@ -252,7 +258,7 @@ public abstract class AbstractMediaWikiProvider extends ContentProvider {
 		return cursor;
 	}
 	
-	private Cursor parseJsonPage(String page) {
+	private Cursor parseJsonPage(String apiUrl, String page) {
 		return null;
 	}
 

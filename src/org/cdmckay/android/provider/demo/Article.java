@@ -17,8 +17,6 @@ package org.cdmckay.android.provider.demo;
 
 import org.cdmckay.android.provider.MediaWikiMetaData;
 import org.cdmckay.android.provider.R;
-import org.cdmckay.android.provider.memoryalpha.MemoryAlphaProvider;
-import org.cdmckay.android.provider.wikipedia.WikipediaProvider;
 
 import android.app.Activity;
 import android.content.ContentResolver;
@@ -51,11 +49,13 @@ public class Article extends Activity {
     	final Uri providerUri;
     	switch (settings.getInt("provider", R.id.provider_wikipedia)) {        		
     		case R.id.provider_memory_alpha:
-    			providerUri = MemoryAlphaProvider.Page.CONTENT_URI;
+    			providerUri = Uri.withAppendedPath(MediaWikiMetaData.CONTENT_URI, 
+    					Main.MEMORY_ALPHA_API + "/page");
     			break;
     		case R.id.provider_wikipedia:
     		default:
-    			providerUri = WikipediaProvider.Page.CONTENT_URI;        			
+    			providerUri = Uri.withAppendedPath(MediaWikiMetaData.CONTENT_URI, 
+    					Main.WIKIPEDIA_API + "/page");        			
     	}
     	
     	// Append the title string and query the provider.
