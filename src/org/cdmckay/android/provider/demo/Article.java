@@ -25,22 +25,16 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Bundle;
-import android.webkit.WebView;
 import android.widget.TextView;
 
-public class Article extends Activity {
-
+public class Article extends Activity {	
+	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.article);
 		
 		final Intent intent = getIntent();
-		
-		// Set the title.
-		final String title = intent.getStringExtra("title");
-		final TextView titleView = (TextView) findViewById(R.id.article_title);			
-		titleView.setText(title);	
 		
 		// Set the content.
 		final ContentResolver resolver = getContentResolver();
@@ -60,18 +54,15 @@ public class Article extends Activity {
     	}
     	
     	// Append the title string and query the provider.
+    	final String title = intent.getStringExtra("title");
     	final Uri uri = Uri.withAppendedPath(providerUri, "title/" + title);	
 		final Cursor cursor = resolver.query(uri, null, null, null, null);     		
 		startManagingCursor(cursor);    	
 		
     	final int contentColumn = cursor.getColumnIndex(MediaWikiMetaData.Page.CONTENT);
-    	final WebView contentView = (WebView) findViewById(R.id.article_content);
+    	final TextView contentView = (TextView) findViewById(R.id.article_content);    	
     	if (cursor.moveToFirst()) {
-    		contentView.loadDataWithBaseURL(
-    				null,
-    				"<html><body>" + cursor.getString(contentColumn) + "</body></html>", 
-    				"text/html", "utf-8",
-    				null);
+    		contentView.setText(cursor.getString(contentColumn));    		
     	}
 	}		
 	
