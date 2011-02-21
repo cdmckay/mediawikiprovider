@@ -53,6 +53,8 @@ public class MediaWikiProvider extends ContentProvider {
 	private static final int SEARCH = 1;
 	private static final int PAGE_BY_TITLE = 2;
 	private static final int PAGE_BY_ID = 3;
+	private static final int SECTIONS_BY_TITLE = 4;
+	private static final int SECTION_BY_TITLE = 5;
 	
 	private static final String API_FORMAT_URL = "http://%s/api.php";
 	
@@ -63,7 +65,13 @@ public class MediaWikiProvider extends ContentProvider {
 		"%s?action=query&prop=revisions&titles=%s&rvprop=content&format=json";
 	
 	private static final String GET_PAGE_BY_ID_FORMAT_URI = 
-		"%s?action=query&prop=revisions&pageids=%s&rvprop=content&format=json";
+		"%s?action=query&prop=revisions&pageids=%s&rvprop=content&format=json";	
+	
+	private static final String GET_SECTIONS_BY_TITLE_FORMAT_URI =
+		"%s?action=parse&page=%s&prop=sections&format=json";
+	
+	private static final String GET_SECTION_BY_TITLE_FORMAT_URI = 
+		"%s?action=query&prop=revisions&titles=%s&rvprop=content&rvsection=%d&rvgeneratexml=&format=json";
 
 	private static final String USER_AGENT = TAG + "/" + MediaWikiMetaData.VERSION;
 
@@ -76,12 +84,28 @@ public class MediaWikiProvider extends ContentProvider {
 	
 	// The page column names.
 	private static final String[] PAGE_COLUMN_NAMES = new String[] {
-			//BaseColumns._ID,
-			MediaWikiMetaData.Page.PAGE_ID,
+			BaseColumns._ID,			
 			MediaWikiMetaData.Page.NAMESPACE,
 			MediaWikiMetaData.Page.TITLE,
-			MediaWikiMetaData.Page.CONTENT
-	};
+			MediaWikiMetaData.Page.CONTENT };
+	
+	// The section info column names.
+	private static final String[] SECTION_INFO_COLUMN_NAMES = new String[] {
+			BaseColumns._ID,
+			MediaWikiMetaData.SectionInfo.TABLE_OF_CONTENTS_LEVEL,
+			MediaWikiMetaData.SectionInfo.LEVEL,
+			MediaWikiMetaData.SectionInfo.LINE,
+			MediaWikiMetaData.SectionInfo.NUMBER,
+			MediaWikiMetaData.SectionInfo.INDEX,
+			MediaWikiMetaData.SectionInfo.ANCHOR,
+			MediaWikiMetaData.Section.CONTENT };
+	
+	// The section column names.
+	private static final String[] SECTION_COLUMN_NAMES = new String[] {
+			BaseColumns._ID,			
+			MediaWikiMetaData.Section.NAMESPACE,
+			MediaWikiMetaData.Section.TITLE,
+			MediaWikiMetaData.Section.CONTENT };
 	
 	private static final class ContentType {
 		private ContentType() {}
@@ -112,12 +136,22 @@ public class MediaWikiProvider extends ContentProvider {
 	// content://org.cdmckay.android.provider.mediawikiprovider/en.wikipedia.org+w/search/Tex
 	// content://org.cdmckay.android.provider.mediawikiprovider/en.wikipedia.org+w/page/title/Texas
 	// content://org.cdmckay.android.provider.mediawikiprovider/en.wikipedia.org+w/page/id/432
+	// content://org.cdmckay.android.provider.mediawikiprovider/en.wikipedia.org+w/page/title/Texas/sections
+	// content://org.cdmckay.android.provider.mediawikiprovider/en.wikipedia.org+w/page/title/Texas/section/1
+	
+	// Future:
+	// content://org.cdmckay.android.provider.mediawikiprovider/en.wikipedia.org+w/page/title/Texas/images
+	// content://org.cdmckay.android.provider.mediawikiprovider/en.wikipedia.org+w/page/title/Texas/image/1
+	// content://org.cdmckay.android.provider.mediawikiprovider/en.wikipedia.org+w/page/title/Texas/links
+	// content://org.cdmckay.android.provider.mediawikiprovider/en.wikipedia.org+w/page/title/Texas/link/1
 	private final UriMatcher mUriMatcher = buildUriMatcher();
 	private UriMatcher buildUriMatcher() {
 		UriMatcher matcher = new UriMatcher(UriMatcher.NO_MATCH);
 		matcher.addURI(MediaWikiMetaData.AUTHORITY, "*/search/*", SEARCH);
 		matcher.addURI(MediaWikiMetaData.AUTHORITY, "*/page/title/*", PAGE_BY_TITLE);
 		matcher.addURI(MediaWikiMetaData.AUTHORITY, "*/page/id/#", PAGE_BY_ID);
+		matcher.addURI(MediaWikiMetaData.AUTHORITY, "*/page/title/*/sections", SECTIONS_BY_TITLE);
+		matcher.addURI(MediaWikiMetaData.AUTHORITY, "*/page/title/*/section/#", SECTION_BY_TITLE);
 		return matcher;
 	}	
 	
@@ -129,6 +163,10 @@ public class MediaWikiProvider extends ContentProvider {
 			case PAGE_BY_TITLE:
 			case PAGE_BY_ID:
 				return MediaWikiMetaData.Page.CONTENT_ITEM_TYPE;
+			case SECTIONS_BY_TITLE:
+				return MediaWikiMetaData.SectionInfo.CONTENT_TYPE;
+			case SECTION_BY_TITLE:
+				return MediaWikiMetaData.Section.CONTENT_ITEM_TYPE;
 			default:
 				throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
@@ -155,6 +193,10 @@ public class MediaWikiProvider extends ContentProvider {
 			case PAGE_BY_ID:
 				return getPageById(convertPathSegmentToApiUrl(segments.get(0)), 
 						Long.valueOf(uri.getLastPathSegment()));
+			case SECTIONS_BY_TITLE:
+				return getSectionsByTitle(convertPathSegmentToApiUrl(segments.get(0)),
+						segments.get(3));
+						
 			default:
 				throw new IllegalArgumentException("Unknown URI: " + uri);
 		}
@@ -274,7 +316,11 @@ public class MediaWikiProvider extends ContentProvider {
 			
 			final List<PageHandler.Result> results = handler.getResults();		
 			for (PageHandler.Result result : results) {
-				cursor.addRow(new Object[] { result.pageId, result.namespace, result.title, result.content });
+				cursor.addRow(new Object[] { 
+						result.pageId, 						
+						result.namespace, 
+						result.title, 
+						result.content });
 			}
 		} catch (Exception e) {
 			throw new RuntimeException(e);
@@ -298,19 +344,27 @@ public class MediaWikiProvider extends ContentProvider {
 				final String content = page
 						.getJSONArray("revisions")
 						.getJSONObject(0)
+						// TODO This should be "parsetree" later.
 						.getString("*");
 				
-				cursor.addRow(new Object[] { 
-						page.getLong("pageid"), 
+				cursor.addRow(new Object[] {
+						page.getLong("pageid"),						
 						page.getLong("ns"),
 						page.getString("title"),
-						content
-						});
+						content });
 			}	
 		} catch (JSONException e) {
 			Log.e(TAG, e.toString());
 			throw new RuntimeException(e);
 		}
+		
+		return cursor;
+	}
+	
+	private Cursor getSectionsByTitle(String apiUrl, String pageString) {
+		final MatrixCursor cursor = new MatrixCursor(SECTION_INFO_COLUMN_NAMES);
+		
+		// TODO Parse this mamma-jamma.
 		
 		return cursor;
 	}

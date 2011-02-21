@@ -41,8 +41,40 @@ public class MediaWikiMetaData {
 						
 		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.item/vnd.cdmckay.mediawiki.page";		
 		
-		// long
-		public static final String PAGE_ID = "pageid";
+		// long		
+		public static final String NAMESPACE = "ns";
+		// String
+		public static final String TITLE = "title";
+		// String
+		public static final String CONTENT = "content";
+	}
+	
+	public static final class SectionInfo {
+		private SectionInfo() {}
+	
+		public static final String CONTENT_TYPE = "vnd.android.cursor.dir/vnd.cdmckay.mediawiki.sectioninfo";		
+		
+		// int
+		public static final String TABLE_OF_CONTENTS_LEVEL = "toclevel";
+		// int
+		public static final String LEVEL = "level";
+		// String
+		public static final String LINE = "line";
+		// String
+		public static final String NUMBER = "number";
+		// int
+		public static final String INDEX = "index";
+		// String
+		public static final String ANCHOR = "anchor";
+		// String
+		public static final String CONTENT = "content";
+	}
+	
+	public static final class Section {
+		private Section() {}	
+		
+		public static final String CONTENT_ITEM_TYPE = "vnd.android.cursor.dir/vnd.cdmckay.mediawiki.section";
+		
 		// long		
 		public static final String NAMESPACE = "ns";
 		// String
