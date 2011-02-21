@@ -62,16 +62,16 @@ public class MediaWikiProvider extends ContentProvider {
 		"%s?action=opensearch&search=%s&format=xml";
 	
 	private static final String GET_PAGE_BY_TITLE_FORMAT_URI = 
-		"%s?action=query&prop=revisions&titles=%s&rvprop=content&format=json";
+		"%s?action=query&prop=revisions&titles=%s&rvprop=content&rvparse=&format=json";
 	
 	private static final String GET_PAGE_BY_ID_FORMAT_URI = 
-		"%s?action=query&prop=revisions&pageids=%s&rvprop=content&format=json";	
+		"%s?action=query&prop=revisions&pageids=%s&rvprop=content&rvparse=&format=json";	
 	
 	private static final String GET_SECTIONS_BY_TITLE_FORMAT_URI =
 		"%s?action=parse&page=%s&prop=sections&format=json";
 	
 	private static final String GET_SECTION_BY_TITLE_FORMAT_URI = 
-		"%s?action=query&prop=revisions&titles=%s&rvprop=content&rvsection=%d&rvgeneratexml=&format=json";
+		"%s?action=query&prop=revisions&titles=%s&rvprop=content&rvparse=&rvsection=%d&format=json";
 
 	private static final String USER_AGENT = TAG + "/" + MediaWikiMetaData.VERSION;
 
@@ -233,7 +233,7 @@ public class MediaWikiProvider extends ContentProvider {
 		} else if (response.contentType.startsWith(ContentType.JSON)) {
 			cursor = parseJsonSearch(apiUrl, response.content);
 		} else {
-			throw new RuntimeException("Unrecognized content type");
+			throw new RuntimeException("Unsupported content type: " + response.contentType);
 		}
 		
 		return cursor;
@@ -285,7 +285,7 @@ public class MediaWikiProvider extends ContentProvider {
 		} else if (response.contentType.startsWith(ContentType.JSON)) {
 			cursor = parseJsonPage(apiUrl, response.content);
 		} else {
-			throw new RuntimeException("Unrecognized content type");
+			throw new RuntimeException("Unsupported content type: " + response.contentType);
 		}
 		
 		return cursor;
@@ -301,7 +301,7 @@ public class MediaWikiProvider extends ContentProvider {
 		} else if (response.contentType.startsWith(ContentType.JSON)) {
 			cursor = parseJsonPage(apiUrl, response.content);
 		} else {
-			throw new RuntimeException("Unrecognized content type");
+			throw new RuntimeException("Unsupported content type: " + response.contentType);
 		}
 		
 		return cursor;
