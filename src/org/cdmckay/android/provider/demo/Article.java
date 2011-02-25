@@ -19,6 +19,7 @@ import org.cdmckay.android.provider.MediaWikiMetaData;
 import org.cdmckay.android.provider.R;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -33,6 +34,9 @@ public class Article extends Activity {
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.article);
+		
+//		ProgressDialog dialog = ProgressDialog.show(Article.this, "", 
+//                "Loading. Please wait...", true);
 		
 		final Intent intent = getIntent();
 		

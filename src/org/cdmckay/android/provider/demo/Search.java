@@ -17,8 +17,10 @@ package org.cdmckay.android.provider.demo;
 
 import org.cdmckay.android.provider.MediaWikiMetaData;
 import org.cdmckay.android.provider.R;
+import org.cdmckay.android.provider.demo.tasks.QueryTask;
 
 import android.app.Activity;
+import android.app.ProgressDialog;
 import android.app.SearchManager;
 import android.content.ContentResolver;
 import android.content.Intent;
@@ -41,13 +43,11 @@ public class Search extends Activity {
 		super.onCreate(savedInstanceState);            
         setContentView(R.layout.search);
                 
-        mListView = (ListView) findViewById(R.id.list);       
+        mListView = (ListView) findViewById(R.id.list);        
         
         final Intent intent = getIntent();
-        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {
-        	final String query = intent.getStringExtra(SearchManager.QUERY);
-        	
-        	final ContentResolver resolver = getContentResolver();
+        if (Intent.ACTION_SEARCH.equals(intent.getAction())) {        	        	
+        	final String query = intent.getStringExtra(SearchManager.QUERY);                
         	
         	final SharedPreferences settings = getSharedPreferences(Main.SETTINGS, MODE_PRIVATE);        	
         	final Uri providerUri;
@@ -60,35 +60,52 @@ public class Search extends Activity {
         		default:
         			providerUri = Uri.withAppendedPath(MediaWikiMetaData.CONTENT_URI, 
         					Main.WIKIPEDIA_API + "/search");			
-        	}
+        	}          	        	
         	
-    		final Uri uri = Uri.withAppendedPath(providerUri, query);	
-    		final Cursor cursor = resolver.query(uri, null, null, null, null);    		
-    		startManagingCursor(cursor);
-    		
-    		final String[] columns = new String[] { 
-    				MediaWikiMetaData.Search.TITLE, 
-    				MediaWikiMetaData.Search.DESCRIPTION 
-    				};
-    		
-    		final int[] to = new int[] { R.id.text1, R.id.text2 };
-    		
-    		mListView.setAdapter(new SimpleCursorAdapter(this, 
-    				R.layout.list_item, cursor, columns, to));
-    		
-    		mListView.setOnItemClickListener(new OnItemClickListener() {
+    		final Uri uri = Uri.withAppendedPath(providerUri, query);    		
+    		final ContentResolver resolver = getContentResolver();
+    		new QueryTask(resolver) {
+    			
+    			private ProgressDialog dialog;
 
 				@Override
-				public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-					if (cursor.moveToPosition(position)) {
-						final Intent articleIntent = new Intent(Search.this, Article.class);			
-						final int titleColumn = cursor.getColumnIndex(MediaWikiMetaData.Search.TITLE);
-						articleIntent.putExtra("title", cursor.getString(titleColumn));
-						startActivity(articleIntent);
-					}														
-				}				
+				protected void onPreExecute() {					
+					dialog = ProgressDialog.show(Search.this, "", 
+		                    "Loading. Please wait...", true);
+				}
+
+				@Override
+				protected void onPostExecute(final Cursor cursor) {
+					startManagingCursor(cursor);
+		    		
+		    		final String[] columns = new String[] { 
+		    				MediaWikiMetaData.Search.TITLE, 
+		    				MediaWikiMetaData.Search.DESCRIPTION 
+		    				};
+		    		
+		    		final int[] to = new int[] { R.id.text1, R.id.text2 };
+		    		
+		    		mListView.setAdapter(new SimpleCursorAdapter(Search.this, 
+		    				R.layout.list_item, cursor, columns, to));
+		    		
+		    		mListView.setOnItemClickListener(new OnItemClickListener() {
+
+						@Override
+						public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
+							if (cursor.moveToPosition(position)) {
+								final Intent articleIntent = new Intent(Search.this, Article.class);			
+								final int titleColumn = cursor.getColumnIndex(MediaWikiMetaData.Search.TITLE);
+								articleIntent.putExtra("title", cursor.getString(titleColumn));
+								startActivity(articleIntent);
+							}														
+						}				
+		    			
+		    		});
+		    		
+		    		dialog.dismiss();
+				}
     			
-    		});
+    		}.execute(uri);    		    		        		
         }        
 	}
 	
